@@ -17,7 +17,7 @@
   -->
 
 <resources>
-    <string name="app_name">User Dashboard</string>
+    <string name="app_name">UserDashboard</string>
     <string name="years">%d years</string>
     <string name="retry">Retry</string>
     <string name="error_message">Could not load feed, try again later</string>
