@@ -49,6 +49,8 @@ The results of the unit tests can be found at `app/build/reports/tests/testDebug
 
 ## License
 
+ ![](app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png)
+
 Copyright (C) 2018 Boris Kachscovsky
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
