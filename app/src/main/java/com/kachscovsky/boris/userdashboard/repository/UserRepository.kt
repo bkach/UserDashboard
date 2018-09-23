@@ -45,31 +45,35 @@ open class UserRepository {
 
     val data: MutableLiveData<Resource<List<User>>> = MutableLiveData()
     private lateinit var databaseObserver: Observer<List<User>>
+    private val executor = Executors.newSingleThreadExecutor()
 
     open fun loadUsers(useDatabase: Boolean) : LiveData<Resource<List<User>>>{
         data.value = Resource.loading(null)
 
-        // Load Results from database
         if (useDatabase) {
-            val loadLiveData = userDao.load()
+            loadUsersFromDatabase()
+        } else {
+            loadUsersFromNetwork()
+        }
 
+        return data
+    }
 
-            // Subscribe to database updates - but unsubscribe once loaded in order to allow
-            // the view to be updated from the network
-            databaseObserver = Observer { users ->
-                if (users == null || users.isEmpty()) {
+    private fun loadUsersFromDatabase() {
+        val loadLiveData = userDao.load()
+
+        // Subscribe to database updates - but unsubscribe once loaded in order to allow
+        // the view to be updated from the network
+        databaseObserver =
+                Observer { users ->
+                    if (users == null || users.isEmpty()) {
                         loadUsersFromNetwork()
                     } else {
                         data.value = Resource.success(users)
                     }
                     unsubscribeObserver(loadLiveData)
                 }
-            loadLiveData.observe(lifecycleOwner, databaseObserver)
-        } else {
-            loadUsersFromNetwork()
-        }
-
-        return data
+        loadLiveData.observe(lifecycleOwner, databaseObserver)
     }
 
     private fun unsubscribeObserver(loadLiveData: LiveData<List<User>>) {
@@ -83,7 +87,7 @@ open class UserRepository {
                         data.value = Resource.error("Unsuccessful response", null)
                     } else {
                         // Asynchronously replace the values in the database
-                        Executors.newSingleThreadExecutor().execute {
+                        executor.execute {
                             userDao.deleteAll()
                             userDao.save(response.body()!!)
                         }
