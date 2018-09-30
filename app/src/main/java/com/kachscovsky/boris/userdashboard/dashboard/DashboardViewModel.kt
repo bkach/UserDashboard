@@ -18,15 +18,14 @@
 
 package com.kachscovsky.boris.userdashboard.dashboard
 
-import android.arch.lifecycle.LifecycleOwner
-import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModel
+import android.arch.lifecycle.*
 import com.kachscovsky.boris.userdashboard.Navigator
 import com.kachscovsky.boris.userdashboard.main.MainComponent
 import com.kachscovsky.boris.userdashboard.repository.Resource
 import com.kachscovsky.boris.userdashboard.repository.User
 import com.kachscovsky.boris.userdashboard.repository.UserRepository
 import com.kachscovsky.boris.userdashboard.utils.AgeCalculator
+import com.kachscovsky.boris.userdashboard.utils.Action
 import com.kachscovsky.boris.userdashboard.utils.StringUtils
 import javax.inject.Inject
 
@@ -42,7 +41,15 @@ open class DashboardViewModel : ViewModel() {
     @Inject lateinit var userRepository: UserRepository
     @Inject lateinit var stringUtils: StringUtils
 
-    var view: DashboardView? = null
+    val setupRecyclerView: Action<Int> = Action()
+    val showLoadingSpinner: Action<Void> = Action()
+    val hideLoadingSpinner: Action<Void> = Action()
+    val dismissSnackbar: Action<Void> = Action()
+    val updateUsers: Action<List<User>> = Action()
+    val showSnackbar: Action<String> = Action()
+    val logError: Action<String> = Action()
+
+    private var lifecycleOwner: LifecycleOwner? = null
 
     /**
      * This list serves as an in-memory cache
@@ -53,23 +60,15 @@ open class DashboardViewModel : ViewModel() {
         const val NUM_ROWS = 2
     }
 
-    fun inject(view: DashboardView, component: MainComponent) {
-        this.view = view
+    fun inject(lifecycleOwner: LifecycleOwner, component: MainComponent) {
+        this.lifecycleOwner = lifecycleOwner
         component.inject(this)
         onAttach()
     }
 
-    fun onAttach() {
-        view?.setupRecyclerView(NUM_ROWS)
-        setupListeners()
+    private fun onAttach() {
+        setupRecyclerView.value = NUM_ROWS
         loadUsers()
-    }
-
-    private fun setupListeners() {
-        view?.onClick(Observer { user -> navigator.goToDetailView(user!!) })
-
-        // When refreshing, we want to ignore the database and attempt to get data from the network
-        view?.onRefresh { loadUsersFromRepository(false) }
     }
 
     /**
@@ -79,9 +78,9 @@ open class DashboardViewModel : ViewModel() {
     fun loadUsers() {
         when {
             users != null -> {
-                view?.hideLoadingSpinner()
-                view?.dismissSnackbar()
-                view?.updateUsers(users!!)
+                hideLoadingSpinner.call()
+                dismissSnackbar.call()
+                updateUsers.value = users!!
             }
 
             else -> loadUsersFromRepository(true)
@@ -96,7 +95,7 @@ open class DashboardViewModel : ViewModel() {
      */
     open fun loadUsersFromRepository(useDatabase: Boolean) {
         userRepository.loadUsers(useDatabase)
-                .observe(view!!, Observer<Resource<List<User>>> { resource ->
+                .observe(lifecycleOwner!!, Observer<Resource<List<User>>> { resource ->
             when {
                 resource?.status == Resource.Status.SUCCESS
                         && resource.data != null -> onSuccess(resource.data!!)
@@ -109,51 +108,46 @@ open class DashboardViewModel : ViewModel() {
     }
 
     private fun onSuccess(users: List<User>) {
-        view?.hideLoadingSpinner()
-        view?.dismissSnackbar()
+        hideLoadingSpinner.call()
+        dismissSnackbar.call()
         users.calculateAndFormatAges()
         // Save in-memory cache
         this.users = users
-        view?.updateUsers(users)
+        updateUsers.value = users
     }
 
     private fun onLoading() {
-        view?.showLoadingSpinner()
+        showLoadingSpinner.call()
     }
 
     private fun onError(message: String?) {
-        view?.hideLoadingSpinner()
-        view?.showSnackbar(stringUtils.getErrorMessage()) {
-            view?.dismissSnackbar()
-            loadUsersFromRepository(false)
-        }
+        hideLoadingSpinner.call()
+        showSnackbar.value = stringUtils.getErrorMessage()
+        logError.value = "Error loading users: " + (message ?: "")
+    }
 
-        view?.logError("Error loading users: " + (message ?: ""))
+    fun onClick(user: User) {
+        navigator.goToDetailView(user)
+    }
+
+    fun onRefresh() {
+        dismissSnackbar.call()
+        loadUsersFromRepository(false)
+    }
+
+    /**
+     * The lifecycleOwner must be set to null in order to prevent memory leaks
+     */
+    override fun onCleared() {
+        lifecycleOwner = null
     }
 
     /**
      * Creates a string resource from the UNIX timestamp of the users' date of birth
      */
     private fun List<User>?.calculateAndFormatAges() {
-        this?.map {
-            it.ageString = stringUtils.getAgeString(AgeCalculator.calculateAge(it.birthday.raw))
+        this?.map {user ->
+            user.ageString = stringUtils.getAgeString(AgeCalculator.calculateAge(user.birthday.raw))
         }
     }
-
-    override fun onCleared() {
-        view = null
-    }
-
-    interface DashboardView : LifecycleOwner {
-        fun setupRecyclerView(rows: Int)
-        fun updateUsers(users: List<User>)
-        fun hideLoadingSpinner()
-        fun showLoadingSpinner()
-        fun onClick(observer: Observer<User>)
-        fun showSnackbar(message: String, onRetry: () -> Unit)
-        fun dismissSnackbar()
-        fun onRefresh(callback: () -> Unit)
-        fun logError(message: String)
-    }
-
 }

@@ -36,12 +36,11 @@ import kotlinx.android.synthetic.main.fragment_dashboard.*
 /**
  * [Fragment] containing the User Dashboard.
  *
- * The view logic has been abstracted out to the [DashboardViewModel] which accesses this class
- * through callbacks to the [DashboardViewModel.DashboardView].
+ * The view logic has been abstracted out to the [DashboardViewModel]
  */
-class DashboardFragment: Fragment(), DashboardViewModel.DashboardView {
+class DashboardFragment: Fragment() {
 
-    lateinit var dashboardViewModel : DashboardViewModel
+    private lateinit var dashboardViewModel : DashboardViewModel
     private val dashboardAdapter = DashboardAdapter()
 
     var snackbar: Snackbar? = null
@@ -68,59 +67,84 @@ class DashboardFragment: Fragment(), DashboardViewModel.DashboardView {
     private fun injectViewModel() {
         dashboardViewModel = ViewModelProviders.of(activity!!).get(DashboardViewModel::class.java)
         dashboardViewModel.inject(this, (activity as MainActivity).component)
+
+        observeViewModelActions()
     }
 
-    /**
-     * [DashboardViewModel.DashboardView] Implementation
-     */
-
-    override fun setupRecyclerView(rows: Int) {
-        val gridLayoutManager = GridLayoutManager(context, rows)
-
-        dashboard_fragment_recycler_view.apply {
-            layoutManager = gridLayoutManager
-            adapter = dashboardAdapter
-        }
-
+    private fun observeViewModelActions() {
+        observeSetupRecyclerView()
+        observeOnClick()
+        observeUpdateUsers()
+        observeOnRefresh()
+        observeShowLoadingSpinner()
+        observeHideLoadingSpinner()
+        observeShowSnackbar()
+        observeDismissSnackbar()
+        observeLogError()
     }
 
-    override fun onClick(observer: Observer<User>) {
-        dashboardAdapter.onClickCallback.observe(this, observer)
+    private fun observeSetupRecyclerView() {
+        dashboardViewModel.setupRecyclerView.observe(this, Observer { rows ->
+            val gridLayoutManager = GridLayoutManager(context, rows!!)
+
+            dashboard_fragment_recycler_view.apply {
+                layoutManager = gridLayoutManager
+                adapter = dashboardAdapter
+            }
+        })
     }
 
-    override fun updateUsers(users: List<User>) {
-        dashboardAdapter.setUserList(users)
-        dashboardAdapter.notifyDataSetChanged()
+    private fun observeOnClick() {
+        dashboardAdapter.onClickCallback.observe(this, Observer { user ->
+            dashboardViewModel.onClick(user!!)
+        })
     }
 
-    override fun onRefresh(callback: () -> Unit) {
+    private fun observeUpdateUsers() {
+        dashboardViewModel.updateUsers.observe(this, Observer { users ->
+            dashboardAdapter.setUserList(users!!)
+            dashboardAdapter.notifyDataSetChanged()
+        })
+    }
+
+    private fun observeOnRefresh() {
         swipe_refresh_container.setOnRefreshListener {
-            callback()
+            dashboardViewModel.onRefresh()
         }
     }
 
-    override fun showLoadingSpinner() {
-        swipe_refresh_container.isRefreshing = true
+    private fun observeShowLoadingSpinner() {
+        dashboardViewModel.showLoadingSpinner.observe(this, Observer {
+            swipe_refresh_container.isRefreshing = true
+        })
     }
 
-    override fun hideLoadingSpinner() {
-        swipe_refresh_container.isRefreshing = false
+    private fun observeHideLoadingSpinner() {
+        dashboardViewModel.hideLoadingSpinner.observe(this, Observer {
+            swipe_refresh_container.isRefreshing = false
+        })
     }
 
-    override fun showSnackbar(message: String, onRetry: () -> Unit) {
-        snackbar = Snackbar.make(view!!, message, Snackbar.LENGTH_INDEFINITE)
-        snackbar!!.setAction(activity?.resources?.getString(R.string.retry)) { onRetry() }
-        snackbar!!.show()
+    private fun observeShowSnackbar() {
+        dashboardViewModel.showSnackbar.observe(this, Observer { message ->
+            snackbar = Snackbar.make(view!!, message!!, Snackbar.LENGTH_INDEFINITE)
+            snackbar!!.setAction(activity?.resources?.getString(R.string.retry)) { dashboardViewModel.onRefresh() }
+            snackbar!!.show()
+        })
     }
 
-    override fun dismissSnackbar() {
-        if (snackbar != null) {
-            snackbar!!.dismiss()
-        }
+    private fun observeDismissSnackbar() {
+        dashboardViewModel.dismissSnackbar.observe(this, Observer {
+            if (snackbar != null) {
+                snackbar!!.dismiss()
+            }
+        })
     }
 
-    override fun logError(message: String) {
-        Log.e(DashboardFragment::class.java.simpleName, message)
+    private fun observeLogError() {
+        dashboardViewModel.logError.observe(this, Observer {message ->
+            Log.e(DashboardFragment::class.java.simpleName, message)
+        })
     }
 
 }

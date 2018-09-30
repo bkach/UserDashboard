@@ -18,8 +18,8 @@
 
 package com.kachscovsky.boris.userdashboard
 
-import android.arch.lifecycle.LiveData
-import android.arch.lifecycle.Observer
+import android.arch.core.executor.testing.InstantTaskExecutorRule
+import android.arch.lifecycle.*
 import com.kachscovsky.boris.userdashboard.MockUser.mockUser
 import com.kachscovsky.boris.userdashboard.dashboard.DashboardViewModel
 import com.kachscovsky.boris.userdashboard.main.MainComponent
@@ -28,48 +28,63 @@ import com.kachscovsky.boris.userdashboard.repository.User
 import com.kachscovsky.boris.userdashboard.repository.UserRepository
 import com.kachscovsky.boris.userdashboard.utils.StringUtils
 import com.nhaarman.mockitokotlin2.*
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito
-import org.mockito.junit.MockitoJUnit
+import org.mockito.junit.MockitoJUnitRunner
+import org.mockito.verification.VerificationMode
 
+@RunWith(MockitoJUnitRunner::class)
 class DashboardViewModelTests {
 
     @Rule
     @JvmField
-    val rule = MockitoJUnit.rule()
-
-    @Suppress("unused")
+    val rule = InstantTaskExecutorRule()
 
     @Mock lateinit var userRepository: UserRepository
     @Mock lateinit var navigator: Navigator
-    @Mock lateinit var view: DashboardViewModel.DashboardView
     @Mock lateinit var mockGetUsersLiveData: LiveData<Resource<List<User>>>
     @Suppress("unused")
     @Mock lateinit var stringUtils: StringUtils
     @Mock lateinit var mainComponent: MainComponent
+
+    @Mock lateinit var lifecycleOwner: LifecycleOwner
+    private lateinit var lifecycle: LifecycleRegistry
+
+    @Mock lateinit var voidObserver: Observer<Void>
+    @Mock lateinit var usersObserver: Observer<List<User>>
+    @Mock lateinit var stringObserver: Observer<String>
+
     @InjectMocks lateinit var dashboardViewModel: DashboardViewModel
 
     @Before
     fun setup() {
         Mockito.`when`(userRepository.loadUsers(any()))
                 .thenReturn(mockGetUsersLiveData)
+
+        lifecycle = LifecycleRegistry(lifecycleOwner)
+        Mockito.`when`(lifecycleOwner.lifecycle)
+                .thenReturn(lifecycle)
+        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+
         inject()
     }
 
     @Test
     fun `When attached, the RecyclerView should be set to the correct number of rows`() {
-        verify(dashboardViewModel.view).setupRecyclerView(2)
+        dashboardViewModel.setupRecyclerView.observe(lifecycleOwner, Observer {rows ->
+            assertEquals(2, rows)
+        })
     }
 
     @Test
     fun `When attached, the click listener should be set correctly`() {
-        val captor = argumentCaptor<Observer<User>>()
-        verify(dashboardViewModel.view).onClick(captor.capture())
-        captor.firstValue.onChanged(mockUser)
+        dashboardViewModel.onClick(mockUser)
         verify(navigator).goToDetailView(eq(mockUser))
     }
 
@@ -84,7 +99,7 @@ class DashboardViewModelTests {
         verify(mockGetUsersLiveData).observe(anyOrNull(), captor.capture())
         captor.firstValue.onChanged(Resource(Resource.Status.SUCCESS, listOf(mockUser), null))
 
-        verify(view).hideLoadingSpinner()
+        verifyHideLoadingSpinner()
     }
 
     @Test
@@ -93,7 +108,7 @@ class DashboardViewModelTests {
         verify(mockGetUsersLiveData).observe(anyOrNull(), captor.capture())
         captor.firstValue.onChanged(Resource(Resource.Status.SUCCESS, listOf(mockUser), null))
 
-        verify(view).dismissSnackbar()
+        verifyDismissSnackbar()
     }
 
     @Test
@@ -105,7 +120,7 @@ class DashboardViewModelTests {
         val resource: Resource<List<User>> = Resource(Resource.Status.SUCCESS, listOfUsers,null)
         captor.firstValue.onChanged(resource)
 
-        verify(view).updateUsers(eq(listOfUsers))
+        verifyUpdateUsers()
     }
 
     @Test
@@ -117,7 +132,7 @@ class DashboardViewModelTests {
         val resource: Resource<List<User>> = Resource(Resource.Status.SUCCESS, listOfUsers,null)
         captor.firstValue.onChanged(resource)
 
-        assert(dashboardViewModel.users == listOfUsers)
+        assertEquals(listOfUsers, dashboardViewModel.users)
     }
 
     @Test
@@ -128,7 +143,7 @@ class DashboardViewModelTests {
         val resource: Resource<List<User>> = Resource(Resource.Status.SUCCESS, null,null)
         captor.firstValue.onChanged(resource)
 
-        verify(view, never()).updateUsers(any())
+        verifyUpdateUsers(never())
     }
 
     @Test
@@ -139,7 +154,7 @@ class DashboardViewModelTests {
         val resource: Resource<List<User>> = Resource(Resource.Status.LOADING, null,null)
         captor.firstValue.onChanged(resource)
 
-        verify(view).showLoadingSpinner()
+        verifyShowLoadingSpinner()
     }
 
     @Test
@@ -150,7 +165,7 @@ class DashboardViewModelTests {
         val resource: Resource<List<User>> = Resource(Resource.Status.ERROR, null,null)
         captor.firstValue.onChanged(resource)
 
-        verify(view).hideLoadingSpinner()
+        verifyHideLoadingSpinner()
     }
 
     @Test
@@ -161,8 +176,8 @@ class DashboardViewModelTests {
         val resource: Resource<List<User>> = Resource(Resource.Status.ERROR, null,"Something went wrong!")
         captor.firstValue.onChanged(resource)
 
-        verify(view).hideLoadingSpinner()
-        verify(view).logError(eq("Error loading users: Something went wrong!"))
+        verifyHideLoadingSpinner()
+        verifyLogError("Error loading users: Something went wrong!")
     }
 
     @Test
@@ -173,8 +188,7 @@ class DashboardViewModelTests {
         val resource: Resource<List<User>> = Resource(Resource.Status.ERROR, null,"Something went wrong!")
         captor.firstValue.onChanged(resource)
 
-        val snackbarCaptor = argumentCaptor<Function0<kotlin.Unit>>()
-        verify(view).showSnackbar(anyOrNull(), snackbarCaptor.capture())
+        verifyShowSnackbar(null)
     }
 
     @Test
@@ -185,11 +199,9 @@ class DashboardViewModelTests {
         val resource: Resource<List<User>> = Resource(Resource.Status.ERROR, null,"Something went wrong!")
         captor.firstValue.onChanged(resource)
 
-        val snackbarCaptor = argumentCaptor<Function0<kotlin.Unit>>()
-        verify(view).showSnackbar(anyOrNull(), snackbarCaptor.capture())
-
-        snackbarCaptor.firstValue()
-        verify(view).dismissSnackbar()
+        verifyShowSnackbar(null)
+        dashboardViewModel.onRefresh()
+        verifyDismissSnackbar()
 
         // Grand total of two times, including the last time this was called
         verify(mockGetUsersLiveData, times(2)).observe(anyOrNull(), anyOrNull())
@@ -202,9 +214,9 @@ class DashboardViewModelTests {
         dashboardViewModel.users = listOfUsers
         dashboardViewModel.loadUsers()
 
-        verify(view).hideLoadingSpinner()
-        verify(view).dismissSnackbar()
-        verify(view).updateUsers(eq(listOfUsers))
+        verifyHideLoadingSpinner()
+        verifyDismissSnackbar(times(2))
+        verifyUpdateUsers()
     }
 
     @Test
@@ -213,7 +225,37 @@ class DashboardViewModelTests {
     }
 
     private fun inject() {
-        dashboardViewModel.inject(view, mainComponent)
+        dashboardViewModel.inject(lifecycleOwner, mainComponent)
+    }
+
+    private fun verifyHideLoadingSpinner() {
+        dashboardViewModel.hideLoadingSpinner.observe(lifecycleOwner, voidObserver)
+        verify(voidObserver).onChanged(anyOrNull())
+    }
+
+    private fun verifyShowLoadingSpinner() {
+        dashboardViewModel.showLoadingSpinner.observe(lifecycleOwner, voidObserver)
+        verify(voidObserver).onChanged(anyOrNull())
+    }
+
+    private fun verifyUpdateUsers(mode: VerificationMode = times(1)) {
+        dashboardViewModel.updateUsers.observe(lifecycleOwner, usersObserver)
+        verify(usersObserver, mode).onChanged(eq(listOf(mockUser)))
+    }
+
+    private fun verifyDismissSnackbar(mode: VerificationMode = times(1)) {
+        dashboardViewModel.dismissSnackbar.observe(lifecycleOwner, voidObserver)
+        verify(voidObserver, mode).onChanged(anyOrNull())
+    }
+
+    private fun verifyLogError(message: String) {
+        dashboardViewModel.logError.observe(lifecycleOwner, stringObserver)
+        verify(stringObserver).onChanged(eq(message))
+    }
+
+    private fun verifyShowSnackbar(message: String?) {
+        dashboardViewModel.showSnackbar.observe(lifecycleOwner, stringObserver)
+        verify(stringObserver).onChanged(eq(message))
     }
 
 }
