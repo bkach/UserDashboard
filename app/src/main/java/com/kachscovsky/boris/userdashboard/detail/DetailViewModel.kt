@@ -36,7 +36,7 @@ class DetailViewModel : ViewModel() {
 
     @Inject lateinit var navigator : Navigator
     @Inject lateinit var stringUtils: StringUtils
-    lateinit var view: DetailView
+    var view: DetailView? = null
     lateinit var user: User
 
     companion object {
@@ -50,24 +50,28 @@ class DetailViewModel : ViewModel() {
     }
 
     fun onAttach() {
-        user = view.getUser()
+        user = view?.getUser()!!
 
         setupGestureListener()
 
-        view.setUserImage(user.photo)
-        view.setUserName(user.name)
-        view.setUserAge(stringUtils.getAgeString(AgeCalculator.calculateAge(user.birthday.raw)))
-        view.setUserRegion(user.region)
+        view?.setUserImage(user.photo)
+        view?.setUserName(user.name)
+        view?.setUserAge(stringUtils.getAgeString(AgeCalculator.calculateAge(user.birthday.raw)))
+        view?.setUserRegion(user.region)
     }
 
     private fun setupGestureListener() {
-        view.onGesture {velocityY ->
+        view?.onGesture {velocityY ->
             run {
                 if (velocityY > MIN_VELOCITY) {
                     navigator.goBack()
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        view = null
     }
 
     interface DetailView {
