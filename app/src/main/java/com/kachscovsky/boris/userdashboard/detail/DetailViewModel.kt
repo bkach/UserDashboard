@@ -18,9 +18,9 @@
 
 package com.kachscovsky.boris.userdashboard.detail
 
+import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
 import com.kachscovsky.boris.userdashboard.Navigator
-import com.kachscovsky.boris.userdashboard.detail.DetailViewModel.DetailView
 import com.kachscovsky.boris.userdashboard.main.MainComponent
 import com.kachscovsky.boris.userdashboard.repository.User
 import com.kachscovsky.boris.userdashboard.utils.AgeCalculator
@@ -29,57 +29,33 @@ import javax.inject.Inject
 
 /**
  * [ViewModel] which contains the View logic for the Detail View. Similar to the
- * [com.kachscovsky.boris.userdashboard.dashboard.DashboardViewModel], this view communicates with the
- * corresponding fragment through the [DetailView].
+ * [com.kachscovsky.boris.userdashboard.dashboard.DashboardViewModel]
  */
 class DetailViewModel : ViewModel() {
 
     @Inject lateinit var navigator : Navigator
     @Inject lateinit var stringUtils: StringUtils
-    var view: DetailView? = null
-    lateinit var user: User
+    val userLiveData: MutableLiveData<User> = MutableLiveData()
 
     companion object {
         const val MIN_VELOCITY: Int = 1000
     }
 
-    fun inject(view: DetailView, component: MainComponent) {
-        this.view = view
+    fun inject(component: MainComponent) {
         component.inject(this)
-        onAttach()
     }
 
-    fun onAttach() {
-        user = view?.getUser()!!
-
-        setupGestureListener()
-
-        view?.setUserImage(user.photo)
-        view?.setUserName(user.name)
-        view?.setUserAge(stringUtils.getAgeString(AgeCalculator.calculateAge(user.birthday.raw)))
-        view?.setUserRegion(user.region)
+    fun setUser(user: User) {
+        if (user.ageString.isNullOrEmpty()) {
+            user.ageString = stringUtils.getAgeString(AgeCalculator.calculateAge(user.birthday.raw))
+        }
+        userLiveData.value = user
     }
 
-    private fun setupGestureListener() {
-        view?.onGesture {velocityY ->
-            run {
-                if (velocityY > MIN_VELOCITY) {
-                    navigator.goBack()
-                }
-            }
+    fun onGestureVelocityY(velocityY: Float) {
+        if (velocityY > MIN_VELOCITY) {
+            navigator.goBack()
         }
     }
 
-    override fun onCleared() {
-        view = null
-    }
-
-    interface DetailView {
-        fun getUser(): User
-        fun onGesture(onGesture: (Float) -> Unit)
-        fun setUserImage(url: String)
-        fun setUserName(name: String)
-        fun setUserAge(age: String)
-        fun setUserRegion(region: String)
-    }
 }

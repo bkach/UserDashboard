@@ -18,7 +18,6 @@
 
 package com.kachscovsky.boris.userdashboard.detail
 
-import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
@@ -27,7 +26,6 @@ import android.view.*
 import com.kachscovsky.boris.userdashboard.Navigator
 import com.kachscovsky.boris.userdashboard.R
 import com.kachscovsky.boris.userdashboard.main.MainActivity
-import com.kachscovsky.boris.userdashboard.repository.User
 import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.fragment_detail.*
 import javax.inject.Inject
@@ -38,26 +36,19 @@ import javax.inject.Inject
  * Like the Dashboard, this only functions as the view and for setting up callbacks. All view logic
  * takes place in the [DetailViewModel]
  */
-class DetailFragment @Inject constructor(): Fragment(), DetailViewModel.DetailView {
+class DetailFragment @Inject constructor(): Fragment() {
 
     private lateinit var detailViewModel : DetailViewModel
     @Inject lateinit var navigator : Navigator
-
-    val gestureCallback: MutableLiveData<Float> = MutableLiveData()
 
     companion object {
         const val DETAIL_VIEW_USER_KEY = "DETAIL_VIEW_USER_KEY"
         const val TAG: String = "DETAIL_FRAGMENT"
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
-        injectViewModel()
-    }
-
     private fun injectViewModel() {
         detailViewModel = ViewModelProviders.of(activity!!).get(DetailViewModel::class.java)
-        detailViewModel.inject(this, (activity as MainActivity).component)
+        detailViewModel.inject((activity as MainActivity).component)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -65,6 +56,24 @@ class DetailFragment @Inject constructor(): Fragment(), DetailViewModel.DetailVi
         val view = inflater.inflate(R.layout.fragment_detail, container, false)
         setupGestureListener(view)
         return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        injectViewModel()
+        setUser()
+    }
+
+    private fun setUser() {
+        detailViewModel.userLiveData.observe(this, Observer { user ->
+            if (user != null) {
+                setUserImage(user.photo)
+                setUserName(user.name)
+                setUserAge(user.ageString!!)
+                setUserRegion(user.region)
+            }
+        })
+        detailViewModel.setUser(arguments?.getParcelable(DETAIL_VIEW_USER_KEY)!!)
     }
 
     /**
@@ -79,7 +88,7 @@ class DetailFragment @Inject constructor(): Fragment(), DetailViewModel.DetailVi
             }
 
             override fun onFling(event1: MotionEvent?, event2: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
-                gestureCallback.value = velocityY
+                detailViewModel.onGestureVelocityY(velocityY)
                 return super.onFling(event1, event2, velocityX, velocityY)
             }
         })
@@ -89,33 +98,21 @@ class DetailFragment @Inject constructor(): Fragment(), DetailViewModel.DetailVi
         }
     }
 
-    /**
-     * [DetailViewModel.DetailView] Implementation
-     */
-
-    override fun getUser(): User {
-        return arguments?.getParcelable(DETAIL_VIEW_USER_KEY)!!
-    }
-
-    override fun onGesture(onGesture: (Float) -> Unit) {
-        gestureCallback.observe(this, Observer<Float> { velocityY -> onGesture(velocityY!!) })
-    }
-
-    override fun setUserImage(url: String) {
+    private fun setUserImage(url: String) {
         Picasso.get()
                 .load(url)
                 .into(detail_fragment_background_imageview)
     }
 
-    override fun setUserName(name: String) {
+    private fun setUserName(name: String) {
         detail_fragment_name_textview.text = name
     }
 
-    override fun setUserAge(age: String) {
+    private fun setUserAge(age: String) {
         detail_fragment_age_textview.text = age
     }
 
-    override fun setUserRegion(region: String) {
+    private fun setUserRegion(region: String) {
         detail_fragment_location_textview.text = region
     }
 

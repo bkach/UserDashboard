@@ -24,6 +24,6 @@ import com.kachscovsky.boris.userdashboard.repository.User
 object MockUser {
 
     val mockUser = User(1L, "Boris", Birthday(123232323232323L),
-            "Los Angeles", "www.google.com", "")
+            "Los Angeles", "www.google.com", "0 years")
 
 }
