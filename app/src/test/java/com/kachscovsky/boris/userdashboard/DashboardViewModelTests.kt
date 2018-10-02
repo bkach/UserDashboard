@@ -76,13 +76,6 @@ class DashboardViewModelTests {
     }
 
     @Test
-    fun `When attached, the RecyclerView should be set to the correct number of rows`() {
-        dashboardViewModel.setupRecyclerView.observe(lifecycleOwner, Observer {rows ->
-            assertEquals(2, rows)
-        })
-    }
-
-    @Test
     fun `When attached, the click listener should be set correctly`() {
         dashboardViewModel.onClick(mockUser)
         verify(navigator).goToDetailView(eq(mockUser))

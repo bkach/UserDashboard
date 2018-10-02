@@ -30,7 +30,6 @@ import android.view.View
 import android.view.ViewGroup
 import com.kachscovsky.boris.userdashboard.R
 import com.kachscovsky.boris.userdashboard.main.MainActivity
-import com.kachscovsky.boris.userdashboard.repository.User
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 
 /**
@@ -47,6 +46,7 @@ class DashboardFragment: Fragment() {
 
     companion object {
         const val TAG: String = "DASHBOARD_FRAGMENT"
+        const val NUM_ROWS = 2
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -57,6 +57,20 @@ class DashboardFragment: Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         injectViewModel()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        setupRecyclerView()
+    }
+
+    private fun setupRecyclerView() {
+        val gridLayoutManager = GridLayoutManager(context, NUM_ROWS)
+
+        dashboard_fragment_recycler_view.apply {
+            layoutManager = gridLayoutManager
+            adapter = dashboardAdapter
+        }
     }
 
     /**
@@ -72,7 +86,6 @@ class DashboardFragment: Fragment() {
     }
 
     private fun observeViewModelActions() {
-        observeSetupRecyclerView()
         observeOnClick()
         observeUpdateUsers()
         observeOnRefresh()
@@ -81,17 +94,6 @@ class DashboardFragment: Fragment() {
         observeShowSnackbar()
         observeDismissSnackbar()
         observeLogError()
-    }
-
-    private fun observeSetupRecyclerView() {
-        dashboardViewModel.setupRecyclerView.observe(this, Observer { rows ->
-            val gridLayoutManager = GridLayoutManager(context, rows!!)
-
-            dashboard_fragment_recycler_view.apply {
-                layoutManager = gridLayoutManager
-                adapter = dashboardAdapter
-            }
-        })
     }
 
     private fun observeOnClick() {

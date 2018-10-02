@@ -18,14 +18,16 @@
 
 package com.kachscovsky.boris.userdashboard.dashboard
 
-import android.arch.lifecycle.*
+import android.arch.lifecycle.LifecycleOwner
+import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModel
 import com.kachscovsky.boris.userdashboard.Navigator
 import com.kachscovsky.boris.userdashboard.main.MainComponent
 import com.kachscovsky.boris.userdashboard.repository.Resource
 import com.kachscovsky.boris.userdashboard.repository.User
 import com.kachscovsky.boris.userdashboard.repository.UserRepository
-import com.kachscovsky.boris.userdashboard.utils.AgeCalculator
 import com.kachscovsky.boris.userdashboard.utils.Action
+import com.kachscovsky.boris.userdashboard.utils.AgeCalculator
 import com.kachscovsky.boris.userdashboard.utils.StringUtils
 import javax.inject.Inject
 
@@ -41,7 +43,6 @@ open class DashboardViewModel : ViewModel() {
     @Inject lateinit var userRepository: UserRepository
     @Inject lateinit var stringUtils: StringUtils
 
-    val setupRecyclerView: Action<Int> = Action()
     val showLoadingSpinner: Action<Void> = Action()
     val hideLoadingSpinner: Action<Void> = Action()
     val dismissSnackbar: Action<Void> = Action()
@@ -56,10 +57,6 @@ open class DashboardViewModel : ViewModel() {
      */
     var users: List<User>? = null
 
-    companion object {
-        const val NUM_ROWS = 2
-    }
-
     fun inject(lifecycleOwner: LifecycleOwner, component: MainComponent) {
         this.lifecycleOwner = lifecycleOwner
         component.inject(this)
@@ -67,7 +64,6 @@ open class DashboardViewModel : ViewModel() {
     }
 
     private fun onAttach() {
-        setupRecyclerView.value = NUM_ROWS
         loadUsers()
     }
 
