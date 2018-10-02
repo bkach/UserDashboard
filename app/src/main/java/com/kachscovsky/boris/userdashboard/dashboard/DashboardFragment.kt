@@ -80,7 +80,7 @@ class DashboardFragment: Fragment() {
      */
     private fun injectViewModel() {
         dashboardViewModel = ViewModelProviders.of(activity!!).get(DashboardViewModel::class.java)
-        dashboardViewModel.inject(this, (activity as MainActivity).component)
+        dashboardViewModel.inject((activity as MainActivity).component)
 
         observeViewModelActions()
     }

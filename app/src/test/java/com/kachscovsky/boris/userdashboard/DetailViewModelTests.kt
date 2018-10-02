@@ -22,7 +22,6 @@ import android.arch.core.executor.testing.InstantTaskExecutorRule
 import com.kachscovsky.boris.userdashboard.MockUser.mockUser
 import com.kachscovsky.boris.userdashboard.detail.DetailViewModel
 import com.kachscovsky.boris.userdashboard.main.MainComponent
-import com.kachscovsky.boris.userdashboard.utils.StringUtils
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import junit.framework.Assert.assertEquals
@@ -43,7 +42,6 @@ class DetailViewModelTests {
 
     @Mock lateinit var navigator: Navigator
     @Mock lateinit var mainComponent: MainComponent
-    @Mock lateinit var stringUtils: StringUtils
     @InjectMocks lateinit var detailViewModel: DetailViewModel
 
     @Before

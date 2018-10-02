@@ -18,8 +18,6 @@
 
 package com.kachscovsky.boris.userdashboard.dashboard
 
-import android.arch.lifecycle.LifecycleOwner
-import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModel
 import com.kachscovsky.boris.userdashboard.Navigator
 import com.kachscovsky.boris.userdashboard.main.MainComponent
@@ -50,15 +48,12 @@ open class DashboardViewModel : ViewModel() {
     val showSnackbar: Action<String> = Action()
     val logError: Action<String> = Action()
 
-    private var lifecycleOwner: LifecycleOwner? = null
-
     /**
      * This list serves as an in-memory cache
      */
     var users: List<User>? = null
 
-    fun inject(lifecycleOwner: LifecycleOwner, component: MainComponent) {
-        this.lifecycleOwner = lifecycleOwner
+    fun inject(component: MainComponent) {
         component.inject(this)
         onAttach()
     }
@@ -91,16 +86,16 @@ open class DashboardViewModel : ViewModel() {
      */
     open fun loadUsersFromRepository(useDatabase: Boolean) {
         userRepository.loadUsers(useDatabase)
-                .observe(lifecycleOwner!!, Observer<Resource<List<User>>> { resource ->
-            when {
-                resource?.status == Resource.Status.SUCCESS
-                        && resource.data != null -> onSuccess(resource.data!!)
+                .observeForever { resource ->
+                    when {
+                        resource?.status == Resource.Status.SUCCESS
+                                && resource.data != null -> onSuccess(resource.data!!)
 
-                resource?.status == Resource.Status.LOADING -> onLoading()
+                        resource?.status == Resource.Status.LOADING -> onLoading()
 
-                else -> onError(resource?.message)
-            }
-        })
+                        else -> onError(resource?.message)
+                    }
+                }
     }
 
     private fun onSuccess(users: List<User>) {
@@ -129,13 +124,6 @@ open class DashboardViewModel : ViewModel() {
     fun onRefresh() {
         dismissSnackbar.call()
         loadUsersFromRepository(false)
-    }
-
-    /**
-     * The lifecycleOwner must be set to null in order to prevent memory leaks
-     */
-    override fun onCleared() {
-        lifecycleOwner = null
     }
 
     /**
