@@ -47,18 +47,18 @@ class DashboardAdapter : RecyclerView.Adapter<DashboardAdapter.ViewHolder>() {
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.user = users[position]
-        holder.userNameTextView.text = holder.user.name
-        holder.ageTextView.text = holder.user.ageString
+        val user = users[position]
+        holder.userNameTextView.text = user.name
+        holder.ageTextView.text = user.ageString
 
         // Callback for RecyclerView item click
         holder.clickListener(View.OnClickListener {
-            onClickCallback.value = holder.user
+            onClickCallback.value = user
         })
 
         // Load Image
         Picasso.get()
-                .load(holder.user.photo)
+                .load(user.photo)
                 .into(holder.photoImageView)
 
     }
@@ -73,7 +73,6 @@ class DashboardAdapter : RecyclerView.Adapter<DashboardAdapter.ViewHolder>() {
         val userNameTextView: TextView = itemView.findViewById(R.id.recyclerview_item_name_textview)
         val ageTextView: TextView = itemView.findViewById(R.id.recyclerview_item_age_textview)
         val photoImageView: ImageView = itemView.findViewById(R.id.recyclerview_item_photo_imageview)
-        lateinit var user: User
 
         fun clickListener(listener: View.OnClickListener) {
             itemView.setOnClickListener(listener)

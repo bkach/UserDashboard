@@ -39,7 +39,7 @@ import com.kachscovsky.boris.userdashboard.repository.User
  * All [ViewModel]s have this class as their [LifecycleObserver] so they are preserved even
  * through configuration changes might destroy the fragment.
  */
-class MainActivity : AppCompatActivity(), MainViewModel.MainView, Navigator {
+class MainActivity : AppCompatActivity(), Navigator {
 
     lateinit var component: MainComponent
 

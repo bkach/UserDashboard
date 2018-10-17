@@ -20,15 +20,10 @@ package com.kachscovsky.boris.userdashboard.main
 
 import android.arch.lifecycle.ViewModel
 import com.kachscovsky.boris.userdashboard.Navigator
-import com.kachscovsky.boris.userdashboard.main.MainViewModel.MainView
 import javax.inject.Inject
 
 /**
- * [ViewModel] which contains the View logic for the [MainView]
- *
- * While this class is quite sparse, it follows the same schema as the other fragments, and if
- * the the app needs to contain more actions in the future (e.g. splash screen), it can do so by
- * adding methods to the [MainView] interface.
+ * [ViewModel] which contains the View logic for the Main View
  */
 class MainViewModel : ViewModel() {
 
@@ -46,7 +41,4 @@ class MainViewModel : ViewModel() {
             initialNavigation = true
         }
     }
-
-    interface MainView
-
 }

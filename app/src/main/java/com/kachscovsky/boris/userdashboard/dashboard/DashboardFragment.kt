@@ -46,7 +46,7 @@ class DashboardFragment: Fragment() {
 
     companion object {
         const val TAG: String = "DASHBOARD_FRAGMENT"
-        const val NUM_ROWS = 2
+        const val NUM_COLUMNS = 2
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -65,7 +65,7 @@ class DashboardFragment: Fragment() {
     }
 
     private fun setupRecyclerView() {
-        val gridLayoutManager = GridLayoutManager(context, NUM_ROWS)
+        val gridLayoutManager = GridLayoutManager(context, NUM_COLUMNS)
 
         dashboard_fragment_recycler_view.apply {
             layoutManager = gridLayoutManager
