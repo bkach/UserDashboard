@@ -1,3 +1,5 @@
+#### *Note: this project has been depreciated. Please refer to the [PostDashboard](https://github.com/bkach/PostDashboard) for my new take on clean architecture!*
+
 # UserDashboard
 
 A simple project used to illustrate clean architecture and testing in Android with Kotlin.
